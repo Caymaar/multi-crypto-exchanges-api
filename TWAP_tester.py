@@ -14,7 +14,6 @@ class TWAPOrder:
         self.executed_quantity = 0
         self.execution_logs = []
 
-
     async def execute_twap(self):
         """
         Exécute l'ordre TWAP.
@@ -22,13 +21,17 @@ class TWAPOrder:
         slices = self.duration // 10  # Divise la durée en tranches de 10 secondes
         slice_quantity = self.quantity / slices
 
+        # Formater le symbole pour l'exchange avant d'utiliser l'API de l'order book
+        formatted_symbol = self.format_symbol_for_exchange(self.exchange.name, self.symbol)
+
         for i in range(slices):
             if self.remaining_quantity <= 0:
                 break
 
             print(f"Execution de la tranche {i + 1}/{slices} sur {self.exchange.name}...")
             try:
-                order_book = await self.exchange.fetch_order_book(self.symbol)
+                order_book = await self.exchange.fetch_order_book(formatted_symbol)
+                print(order_book)
                 best_price = None
 
                 if self.side == "buy":
@@ -60,6 +63,30 @@ class TWAPOrder:
         print(f"Exécution de l'ordre TWAP terminée sur {self.exchange.name}")
         self.report()
 
+    def format_symbol_for_exchange(self, exchange_name, symbol):
+        """
+        Ajuste le format du symbole en fonction de l'exchange.
+
+        :param exchange_name: Nom de l'exchange (e.g., 'binance', 'okx', 'coinbase_pro').
+        :param symbol: Symbole de trading à convertir (e.g., 'BTCUSDT').
+        :return: Symbole converti pour l'exchange.
+        """
+        if exchange_name.lower() == "binance":
+            # Binance utilise le format compact, e.g., BTCUSDT
+            return symbol.replace("-", "").replace("/", "")
+        elif exchange_name.lower() == "okx":
+            # OKX utilise le format avec un tiret, e.g., BTC-USDT
+            if "-" not in symbol:
+                return f"{symbol[:-4]}-{symbol[-4:]}"  # Transforme BTCUSDT en BTC-USDT
+            return symbol
+        elif exchange_name.lower() == "coinbase_pro":
+            # Coinbase Pro utilise le format avec un tiret, mais remplace USDT par USD, e.g., BTC-USD
+            if "-" not in symbol:
+                symbol = f"{symbol[:-4]}-{symbol[-4:]}"  # Transforme BTCUSDT en BTC-USDT
+            return symbol.replace("USDT", "USD")
+        else:
+            raise ValueError(f"Exchange {exchange_name} non supporté.")
+
     def report(self):
         """
         Génère un rapport récapitulatif de l'exécution.
@@ -85,7 +112,7 @@ if __name__ == "__main__":
         }
 
         # Configuration de l'ordre
-        exchange_name = "binance"
+        exchange_name = "coinbase_pro"  # Changez pour "okx" ou "binance" si nécessaire
         exchange = exchange_instances[exchange_name]
         symbol = "BTCUSDT"
         side = "buy"
