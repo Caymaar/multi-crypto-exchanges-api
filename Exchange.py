@@ -13,20 +13,20 @@ class Exchange(ABC):
     def get_available_trading_pairs(self):
         pass
 
-    @abstractmethod
-    def fetch_order_book(self):
-        pass
 
 class Binance(Exchange):
 
-    name = "Binance"
-    def __init__(self):
-        
+    name = "binance"
+    def __init__(self, api_key, api_secret):
+
         self.BASE_REST_SPOT_URL = "https://api.binance.com"
         self.KLINE_URL = "/api/v3/klines"
         self.SYMBOLE_URL = "/api/v3/exchangeInfo"
         self.limit = 1000
-    
+        self.ws_url = "wss://stream.binance.com:9443/ws"
+        self.api_key = "YOUR_BINANCE_API_KEY"
+        self.api_secret = "YOUR_BINANCE_API_SECRET"
+
     async def get_historical_klines(self, symbol, interval, start_time, end_time):
         """
         Récupère des chandelles historiques entre start_time et end_time.
@@ -58,7 +58,7 @@ class Binance(Exchange):
                         if not len(data):
                             break
                         klines.extend(data)
-                        
+
                         # Avance le start_time à la fin de la dernière chandelle récupérée
                         start_time = data[-1][0] + 1
                         await asyncio.sleep(0.1)  # Petite pause pour éviter les limitations d'API
@@ -77,27 +77,20 @@ class Binance(Exchange):
         else:
             raise Exception(f"Binance API error: {response.status_code} - {response.text}")
 
-    async def fetch_order_book(self, symbol):
-        url = f"{self.BASE_REST_SPOT_URL}/api/v3/depth"
-        params = {"symbol": symbol, "limit": 5}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    raise Exception(f"Binance order book fetch failed: {response.status} - {await response.text()}")
 
 class OKX(Exchange):
     """
     Classe pour interagir avec l'API de OKX.
     """
 
-    name = "OKX"
-    def __init__(self):
+    name = "okx"
+    def __init__(self, api_key, api_secret):
         self.BASE_REST_URL = "https://www.okx.com"
         self.KLINE_URL = "/api/v5/market/candles"
         self.SYMBOLE_URL = "/api/v5/public/instruments"
         self.limit = 100  # OKX limite à 100 chandelles par requête
+        self.api_key = "YOUR_OKX_API_KEY"
+        self.api_secret = "YOUR_OKX_API_SECRET"
 
     async def get_historical_klines(self, symbol, interval, start_time, end_time):
         """
@@ -160,33 +153,21 @@ class OKX(Exchange):
         else:
             raise Exception(f"OKX API error: {response.status_code} - {response.text}")
 
-    async def fetch_order_book(self, symbol):
-        url = f"{self.BASE_REST_URL}/api/v5/market/books"
-        params = {"instId": symbol}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if "data" in data and data["data"]:
-                        order_book = data["data"][0]
-                        return {
-                            "asks": [[float(ask[0]), float(ask[1])] for ask in order_book["asks"]],
-                            "bids": [[float(bid[0]), float(bid[1])] for bid in order_book["bids"]]
-                        }
-                else:
-                    raise Exception(f"OKX order book fetch failed: {response.status} - {await response.text()}")
     
 class CoinbasePro(Exchange):
     """
     Classe pour interagir avec l'API de Coinbase Pro.
     """
 
-    name = "Coinbase Pro"
-    def __init__(self):
+    name = "coinbase_pro"
+    def __init__(self, api_key, api_secret, passphrase):
         self.BASE_REST_URL = "https://api.exchange.coinbase.com"
         self.KLINE_URL = "/products/{symbol}/candles"
         self.SYMBOL_URL = "/products"
         self.limit = 300  # Coinbase Pro limite à 300 chandelles par requête
+        self.api_key = "YOUR_COINBASE_API_KEY"
+        self.api_secret = "YOUR_COINBASE_API_SECRET"
+        self.passphrase = "YOUR_COINBASE_PASSPHRASE"
 
         # Mapping des intervalles acceptés par Coinbase Pro
         self.valid_intervals = {
@@ -257,17 +238,3 @@ class CoinbasePro(Exchange):
             return [product['id'] for product in data]
         else:
             raise Exception(f"Coinbase Pro API error: {response.status_code} - {response.text}")
-
-    async def fetch_order_book(self, symbol):
-        url = f"{self.BASE_REST_URL}/products/{symbol}/book"
-        params = {"level": 1}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return {
-                        "asks": [[float(data["asks"][0][0]), float(data["asks"][0][1])]],
-                        "bids": [[float(data["bids"][0][0]), float(data["bids"][0][1])]]
-                    }
-                else:
-                    raise Exception(f"Coinbase Pro order book fetch failed: {response.status} - {await response.text()}")
