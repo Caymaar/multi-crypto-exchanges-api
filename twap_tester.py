@@ -9,22 +9,9 @@ async def main():
     # Crée une instance de WebSocketManager
     ws_manager = WebSocketManager()
 
-    # Clés API pour les échanges
-    binance_api_key = "ncFKb1E23hEOrpQFrcMfj6nTVJuBBIRWE3sVQHCfsaiqubo37fzjBNW3w2nhIV4s"
-    binance_api_secret = "YOUR_BINANCE_API_SECRET"
-
-    okx_api_key = "YOUR_OKX_API_KEY"
-    okx_api_secret = "YOUR_OKX_API_SECRET"
-
-    coinbase_api_key = "YOUR_COINBASE_API_KEY"
-    coinbase_api_secret = "YOUR_COINBASE_API_SECRET"
-    coinbase_passphrase = "YOUR_COINBASE_PASSPHRASE"
-
     # Crée des instances des exchanges avec authentification
     exchange_instances = {
-        "binance": Binance(binance_api_key, binance_api_secret),
-        "okx": OKX(okx_api_key, okx_api_secret),
-        "coinbase_pro": CoinbasePro(coinbase_api_key, coinbase_api_secret, coinbase_passphrase)
+        "binance": Binance(),
     }
 
     # Configuration de l'ordre

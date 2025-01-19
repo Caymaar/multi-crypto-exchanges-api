@@ -17,15 +17,13 @@ class Exchange(ABC):
 class Binance(Exchange):
 
     name = "binance"
-    def __init__(self, api_key, api_secret):
+    def __init__(self):
 
         self.BASE_REST_SPOT_URL = "https://api.binance.com"
         self.KLINE_URL = "/api/v3/klines"
         self.SYMBOLE_URL = "/api/v3/exchangeInfo"
         self.limit = 1000
         self.ws_url = "wss://stream.binance.com:9443/ws"
-        self.api_key = "YOUR_BINANCE_API_KEY"
-        self.api_secret = "YOUR_BINANCE_API_SECRET"
 
     async def get_historical_klines(self, symbol, interval, start_time, end_time):
         """
@@ -82,15 +80,12 @@ class OKX(Exchange):
     """
     Classe pour interagir avec l'API de OKX.
     """
-
     name = "okx"
-    def __init__(self, api_key, api_secret):
+    def __init__(self):
         self.BASE_REST_URL = "https://www.okx.com"
         self.KLINE_URL = "/api/v5/market/candles"
         self.SYMBOLE_URL = "/api/v5/public/instruments"
         self.limit = 100  # OKX limite à 100 chandelles par requête
-        self.api_key = "YOUR_OKX_API_KEY"
-        self.api_secret = "YOUR_OKX_API_SECRET"
 
     async def get_historical_klines(self, symbol, interval, start_time, end_time):
         """
@@ -160,14 +155,11 @@ class CoinbasePro(Exchange):
     """
 
     name = "coinbase_pro"
-    def __init__(self, api_key, api_secret, passphrase):
+    def __init__(self):
         self.BASE_REST_URL = "https://api.exchange.coinbase.com"
         self.KLINE_URL = "/products/{symbol}/candles"
         self.SYMBOL_URL = "/products"
         self.limit = 300  # Coinbase Pro limite à 300 chandelles par requête
-        self.api_key = "YOUR_COINBASE_API_KEY"
-        self.api_secret = "YOUR_COINBASE_API_SECRET"
-        self.passphrase = "YOUR_COINBASE_PASSPHRASE"
 
         # Mapping des intervalles acceptés par Coinbase Pro
         self.valid_intervals = {
