@@ -1,7 +1,16 @@
-from fastapi import FastAPI, Query
+from asyncio import tasks
+
+from fastapi import FastAPI, Query, BackgroundTasks
 import asyncio
 from Exchange import Binance, CoinbasePro, OKX
 from datetime import datetime, timedelta
+from pydantic import BaseModel
+from TWAPOrder import TWAPOrder
+import uuid
+from WebSocketManager import WebSocketManager
+from typing import List, Optional
+
+orders: List[TWAPOrder] = [] # List to store the active or closed TWAP orders
 
 class Requester:
 
@@ -18,6 +27,29 @@ class Requester:
     async def get_historical_klines(self, exchange, symbol, interval, start_time, end_time):
         return await self.exchange[exchange].get_historical_klines(symbol, interval, start_time, end_time)
 
+# Pydantic model for the request body
+class TWAPOrderRequest(BaseModel):
+    token_id: str
+    exchange: str
+    symbol: str
+    quantity: float
+    duration: int
+    price: float
+    start_time: str  # "YYYY-MM-DDTHH:MM:SS"
+    end_time: str  # "YYYY-MM-DDTHH:MM:SS"
+    interval: int  # Interval for the TWAP order (e.g., "5m", "1h")
+
+class OrderResponse(BaseModel):
+    token_id: str
+    symbol: str
+    side: str
+    quantity: float
+    limit_price: float
+    status: str
+    creation_time: str  # Timestamp as ISO string
+
+
+
 # Initialize FastAPI app
 app = FastAPI()
 requester = Requester()
@@ -33,6 +65,134 @@ def get_symbols(exchange):
     
     pairs = requester.get_available_trading_pairs(exchange)
     return {"symbols": pairs}
+
+
+@app.post("/orders/twap", response_model=List[OrderResponse])
+async def submit_twap_order(requests: List[TWAPOrderRequest], background_tasks: BackgroundTasks):
+    """
+    Submit a TWAP (Time-Weighted Average Price) order.
+
+    Args:
+        request: TWAPOrderRequest, including token_id, exchange, symbol, quantity, price, start_time, and end_time.
+
+    Returns:
+        OrderResponse: status and message indicating the order was accepted or rejected.
+    """
+    try:
+        order_responses = []
+        tasks = []
+
+        for request in requests:
+            token_id = request.token_id if request.token_id else str(uuid.uuid4())
+            exchange = request.exchange
+            symbol = request.symbol
+            quantity = request.quantity
+            price = request.price
+            start_time = request.start_time
+            end_time = request.end_time
+            interval = request.interval
+
+            # Validate exchange name
+            if exchange not in ["binance", "okx", "coinbasepro"]:
+                raise HTTPException(status_code=400, detail=f"Unsupported exchange: {exchange}")
+
+            # Validate time format
+            try:
+                start_timestamp = int(datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S").timestamp() * 1000)
+                end_timestamp = int(datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S").timestamp() * 1000)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use 'YYYY-MM-DDTHH:MM:SS'.")
+
+            # Validate symbol format
+            if not re.match(r'^[A-Z0-9-_.]{1,20}$', symbol):
+                raise HTTPException(status_code=400, detail="Invalid symbol format.")
+
+            # Create TWAP Order
+            exchange_instance = requester.exchange[exchange]
+            ws_manager = WebSocketManager()
+
+            twap_order = TWAPOrder(
+                token_id=token_id,
+                exchange=exchange_instance,
+                symbol=symbol,
+                side="buy" if price > 0 else "sell",  # Determine the side based on the price
+                quantity=quantity,
+                duration=request.duration,
+                slice_interval=interval,
+                limit_price=price,
+                ws_manager=ws_manager
+            )
+
+            orders.append(twap_order)
+
+            # Add task to background for execution
+            # background_tasks.add_task(twap_order.execute_twap)
+            # tasks.append(asyncio.create_task(twap_order.execute_twap()))
+
+            # Add the response data to the list
+            order_responses.append(OrderResponse(
+                token_id=token_id,
+                symbol=symbol,
+                side=twap_order.side,
+                quantity=quantity,
+                limit_price=price,
+                status="Accepted",
+                creation_time=datetime.utcnow().isoformat()
+            ))
+
+            # await asyncio.gather(*tasks)
+        # Serialize responses before returning
+        return order_responses  # Convert the Pydantic models to dictionaries
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error submitting orders: {str(e)}")
+
+@app.get("/orders", response_model=List[OrderResponse])
+def list_orders(token_id: Optional[str] = None, status: Optional[str] = None):
+    """
+    Get all orders (can be filtered by token_id or status)
+    """
+    filtered_orders = orders
+
+    if token_id:
+        filtered_orders = [order for order in filtered_orders if order.token_id == token_id]
+
+    if status:
+        filtered_orders = [order for order in filtered_orders if order.status == status]
+
+    if not filtered_orders:
+        raise HTTPException(status_code=404, detail="No orders found.")
+
+    return [OrderResponse(
+        token_id=order.token_id,
+        symbol=order.symbol,
+        side=order.side,
+        quantity=order.quantity,
+        limit_price=order.limit_price,
+        status=order.status,
+        creation_time=order.creation_time.isoformat()
+    ) for order in filtered_orders]
+
+
+@app.get("/orders/{token_id}", response_model=OrderResponse)
+def get_order_by_token_id(token_id: str):
+    """
+    Get a specific order by token_id.
+    """
+    order = next((order for order in orders if order.token_id == token_id), None)
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found.")
+
+    return OrderResponse(
+        token_id=order.token_id,
+        symbol=order.symbol,
+        side=order.side,
+        quantity=order.quantity,
+        limit_price=order.limit_price,
+        status=order.status,
+        creation_time=order.creation_time.isoformat()
+    )
 
 
 # ...existing code...

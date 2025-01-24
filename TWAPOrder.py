@@ -1,61 +1,107 @@
 from datetime import datetime
 import asyncio
+from typing import Optional, Union, List, Dict
+import uuid
 
 
 class TWAPOrder:
-    def __init__(self, exchange, symbol, side, quantity, duration, limit_price=None, ws_manager=None):
-        self.exchange = exchange  # Instance de l'exchange (e.g., Binance(), OKX(), CoinbasePro())
-        self.symbol = symbol.upper()
-        self.side = side.lower()  # 'buy' ou 'sell'
-        self.quantity = quantity
-        self.duration = duration
-        self.limit_price = limit_price
-        self.remaining_quantity = quantity
-        self.executed_quantity = 0
-        self.execution_logs = []
-        self.ws_manager = ws_manager  # Instance de WebSocketManager
-        self.order_book_data = {"bids": [], "asks": []}  # Pour stocker les données du carnet d'ordres en temps réel
+    orders = []
 
-    async def connect_websocket(self):
+    def __init__(self, token_id: str, exchange: object, symbol: str, side: str, quantity: Union[int, float], duration: int, slice_interval: int = 10, limit_price: Optional[Union[int, float]] = None, ws_manager: Optional[object] = None, status: str = "open"):
+        self.token_id = token_id
+        self.exchange: object = exchange
+        self.symbol: str = symbol.upper()
+        self.side: str = side.lower()
+        self.quantity: Union[int, float] = quantity
+        self.duration: int = duration
+        self.slice_interval: int = slice_interval
+        self.limit_price: Optional[Union[int, float]] = limit_price
+        self.remaining_quantity: Union[int, float] = quantity
+        self.executed_quantity: Union[int, float] = 0
+        self.execution_logs: List[Dict[str, Union[str, float]]] = []
+        self.ws_manager: Optional[object] = ws_manager
+        self.order_book_data: Dict[str, List[Dict[str, Union[str, float]]]] = {"bids": [], "asks": []}
+        self.status = status
+        self.creation_time = datetime.now()
+
+    def to_dict(self):
         """
-        Utilise WebSocketManager pour se connecter et récupérer les données du carnet d'ordres en temps réel.
+        Convert TWAPOrder instance to a dictionary for serialization.
+        """
+        return {
+            "token_id": self.token_id,
+            "symbol": self.symbol,
+            "side": self.side,
+            "quantity": self.quantity,
+            "duration": self.duration,
+            "slice_interval": self.slice_interval,
+            "limit_price": self.limit_price,
+            "status": self.status,
+            "creation_time": self.creation_time.isoformat(),
+        }
+
+    async def connect_websocket(self) -> None:
+        """
+        Connect to the WebSocket using WebSocketManager and fetch real-time order book data.
         """
         self.symbol = self.format_symbol_for_exchange(self.exchange.name, self.symbol)
-        print(f"Connexion WebSocket pour {self.exchange.name} avec {self.symbol}")
+        print(f"Connecting WebSocket for {self.exchange.name} with {self.symbol}...")
 
         # Get order book data using WebSocketManager
         self.order_book_data = await self.ws_manager.get_order_book_data(self.exchange.name, self.symbol)
-        print(f"WebSocket connecté pour {self.symbol} sur {self.exchange.name}")
+        print(f"WebSocket connected for {self.symbol} on {self.exchange.name}")
 
-    async def execute_twap(self):
-        """
-        Exécute l'ordre TWAP en utilisant les données du carnet d'ordres en temps réel.
-        """
-        slices = self.duration // 10  # Divise la durée en tranches de 10 secondes
-        slice_quantity = self.quantity / slices
+    def close_order(self):
+        self.status = "closed"  # Update status when the order is closed
 
-        # Connexion WebSocket pour récupérer les données du carnet d'ordres
-        await self.connect_websocket()
+    def get_order_details(self):
+        return {
+            "token_id": self.token_id,
+            "exchange": self.exchange.name,
+            "symbol": self.symbol,
+            "side": self.side,
+            "quantity": self.quantity,
+            "duration": self.duration,
+            "slice_interval": self.slice_interval,
+            "limit_price": self.limit_price,
+            "status": self.status,
+            "creation_time": self.creation_time.isoformat(),
+        }
+
+
+    async def execute_twap(self) -> None:
+        """
+        Execute the TWAP order using real-time order book data.
+
+        The order is divided into slices based on the specified duration and slice interval.
+        """
+
+        slices: int = self.duration // self.slice_interval  # Number of slices
+        if slices == 0:
+            raise ValueError("Duration should be greater than slice interval.")
+        slice_quantity: Union[int, float] = self.quantity / slices
 
         for i in range(slices):
             if self.remaining_quantity <= 0:
                 break
 
-            print(f"Execution de la tranche {i + 1}/{slices} sur {self.exchange.name}...")
-            try:
-                # Utilisation des données du carnet d'ordres en temps réel
-                best_price = None
-                if self.side == "buy":
-                    best_price = float(self.order_book_data["asks"][0]["price"])  # Meilleur prix d'achat
-                elif self.side == "sell":
-                    best_price = float(self.order_book_data["bids"][0]["price"])  # Meilleur prix de vente
+            await self.connect_websocket()
 
-                # Si un prix limite est défini, on vérifie si le prix actuel respecte la condition
+            print(f"Executing slice {i + 1}/{slices} on {self.exchange.name}...")
+            try:
+                # Retrieve the best price from the order book
+                best_price: Optional[float] = None
+                if self.side == "buy":
+                    best_price = float(self.order_book_data["asks"][0]["price"])  # Best ask price
+                elif self.side == "sell":
+                    best_price = float(self.order_book_data["bids"][0]["price"])  # Best bid price
+
+                # Check limit price conditions
                 if self.limit_price is None or (
-                        (self.side == "buy" and best_price <= self.limit_price) or
-                        (self.side == "sell" and best_price >= self.limit_price)
+                    (self.side == "buy" and best_price <= self.limit_price) or
+                    (self.side == "sell" and best_price >= self.limit_price)
                 ):
-                    executed_now = min(slice_quantity, self.remaining_quantity)
+                    executed_now: Union[int, float] = min(slice_quantity, self.remaining_quantity)
                     self.remaining_quantity -= executed_now
                     self.executed_quantity += executed_now
                     self.execution_logs.append({
@@ -63,21 +109,32 @@ class TWAPOrder:
                         "price": best_price,
                         "quantity": executed_now
                     })
-                    print(f"Exécuté {executed_now} à un prix de {best_price}")
+                    print(f"Executed {executed_now:.4f} at a price of {best_price}")
                 else:
-                    print(f"Tranche {i + 1} ignorée : prix limite non atteint.")
+                    print(
+                        f"Slice {i + 1} skipped: limit price not met. "
+                        f"Desired price: {self.limit_price}, Current price: {best_price}"
+                    )
 
             except Exception as e:
-                print(f"Erreur pendant l'exécution de la tranche : {e}")
+                print(f"Error during slice execution: {e}")
 
-            await asyncio.sleep(10)  # Attend avant la tranche suivante
+            await asyncio.sleep(self.slice_interval)  # Wait before the next slice
 
-        print(f"Exécution de l'ordre TWAP terminée sur {self.exchange.name}")
+        print(f"TWAP order execution completed on {self.exchange.name}")
+        self.close_order()
         self.report()
 
-    def format_symbol_for_exchange(self, exchange_name, symbol):
+    def format_symbol_for_exchange(self, exchange_name: str, symbol: str) -> str:
         """
-        Ajuste le format du symbole en fonction de l'exchange.
+        Adjust the trading symbol format for the specified exchange.
+
+        Args:
+            exchange_name (str): Name of the exchange (e.g., "Binance").
+            symbol (str): Trading symbol to format.
+
+        Returns:
+            str: Formatted trading symbol.
         """
         if exchange_name.lower() == "binance":
             return symbol.replace("-", "").replace("/", "")
@@ -90,20 +147,20 @@ class TWAPOrder:
                 symbol = f"{symbol[:-4]}-{symbol[-4:]}"
             return symbol.replace("USDT", "USD")
         else:
-            raise ValueError(f"Exchange {exchange_name} non supporté.")
+            raise ValueError(f"Exchange {exchange_name} not supported.")
 
-    def report(self):
+    def report(self) -> None:
         """
-        Génère un rapport récapitulatif de l'exécution.
+        Generate a summary report of the TWAP execution.
         """
-        print("\nRapport d'exécution :")
-        print(f"Exchange : {self.exchange.name}")
-        print(f"Symbole : {self.symbol}")
-        print(f"Type : {self.side}")
-        print(f"Quantité totale : {self.quantity}")
-        print(f"Quantité exécutée : {self.executed_quantity}")
-        print(f"Quantité restante : {self.remaining_quantity}")
-        print(f"Logs d'exécution :")
+        print("\nExecution Report:")
+        print(f"Exchange: {self.exchange.name}")
+        print(f"Symbol: {self.symbol}")
+        print(f"Side: {self.side}")
+        print(f"Total Quantity: {self.quantity}")
+        print(f"Executed Quantity: {self.executed_quantity}")
+        print(f"Remaining Quantity: {self.remaining_quantity}")
+        print(f"Execution Logs:")
         for log in self.execution_logs:
-            print(f" - {log['timestamp']}: {log['quantity']} @ {log['price']}")
-
+            timestamp = datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+            print(f" - {timestamp}: {log['quantity']} @ {log['price']}")

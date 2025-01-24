@@ -1,9 +1,7 @@
-# main.py
 import asyncio
 from Exchange import Binance, OKX, CoinbasePro
 from WebSocketManager import WebSocketManager
 from TWAPOrder import TWAPOrder
-
 
 async def main():
     # Crée une instance de WebSocketManager
@@ -20,16 +18,31 @@ async def main():
     symbol = "BTCUSDT"
     side = "buy"
     quantity = 0.01
-    duration = 60  # Durée totale en secondes
-    limit_price = 40000  # Prix limite facultatif
+    duration = 5  # Durée totale en secondes
+    slice_interval = 1  # Intervalle entre les tranches en secondes
+    limit_price = 105580  # Prix limite facultatif
 
-    # Crée une instance de TWAPOrder
-    twap_order = TWAPOrder(exchange, symbol, side, quantity, duration, limit_price, ws_manager)
+    # Crée une instance de TWAPOrder avec les nouveaux paramètres
+    twap_order = TWAPOrder(
+        token_id="order123",  # Assurez-vous que le token_id est unique pour chaque ordre
+        exchange=exchange,
+        symbol=symbol,
+        side=side,
+        quantity=quantity,
+        duration=duration,
+        slice_interval=slice_interval,
+        limit_price=limit_price,
+        ws_manager=ws_manager
+    )
 
     # Exécute l'ordre TWAP
     await twap_order.execute_twap()
 
 
+
 # Exécution principale
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(f"An error occurred: {e}")
