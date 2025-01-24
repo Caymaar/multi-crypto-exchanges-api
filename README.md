@@ -16,14 +16,15 @@ Install Postman: If you don't have Postman installed, download it from the Postm
 
 Configure Postman: Open Postman, and configure the following collections to interact with the API.
 
-3. Submit TWAP Orders
+# 3. Submit TWAP Orders
 
     POST /orders/twap
 
 This endpoint allows you to submit one or more TWAP (Time-Weighted Average Price) orders. You need to specify the token_id, exchange, symbol, quantity, price, start_time, end_time, and interval.
 
-Example Request (JSON body for submitting a single order):
+# Example Request (JSON body for submitting a single order):
 
+```plaintext
 {
   "token_id": "order_1",
   "exchange": "binance",
@@ -59,6 +60,10 @@ Example Request (JSON body for submitting multiple orders):
     "interval": 10
   }
 ]
+```
+
+```plaintext
+Example Response (Success):
 
 Response (Success):
 
@@ -73,18 +78,19 @@ Response (Success):
     "creation_time": "2025-01-01T00:00:00"
   }
 ]
+```
 
-4. Get All Orders
+
+# 4. Get All Orders
 
     GET /orders
 
 This endpoint retrieves a list of all orders that have been placed. You can filter the list by token_id or status (open, closed).
 
+```plaintext
 Example Request:
 
 GET http://127.0.0.1:8000/orders?token_id=order_1
-
-Response:
 
 [
   {
@@ -97,13 +103,16 @@ Response:
     "creation_time": "2025-01-01T00:00:00"
   }
 ]
+```
 
-5. Get Order by Token ID
+
+# 5. Get Order by Token ID
 
     GET /orders/{token_id}
 
 This endpoint retrieves the detailed status of a specific order based on its token_id.
 
+```plaintext
 Example Request:
 
 GET http://127.0.0.1:8000/orders/order_1
@@ -119,7 +128,34 @@ Response:
   "status": "Accepted",
   "creation_time": "2025-01-01T00:00:00"
 }
+```
 
+# How to Test Using Postman
+Step 1: Start the Server
+
+Ensure the server is running on http://127.0.0.1:8000. You can start the FastAPI server using uvicorn:
+
+uvicorn server:app --reload
+
+
+# Open Postman and create a new Request.
+
+    For GET Requests (e.g., /klines/{exchange}/{symbol}):
+        Set the HTTP method to GET.
+        Enter the URL: http://127.0.0.1:8000/klines/binance/BTCUSDT?interval=5m&start_date=2025-01-01T00:00:00&end_date=2025-01-24T00:00:00.
+        Hit Send.
+
+    For POST Requests (e.g., /orders/twap):
+        Set the HTTP method to POST.
+        Enter the URL: http://127.0.0.1:8000/orders/twap.
+        In the Body tab, select raw and choose JSON format.
+        Paste the example JSON body for submitting orders.
+        Hit Send.
+
+    For GET Requests to Retrieve Orders (e.g., /orders or /orders/{token_id}):
+        Set the HTTP method to GET.
+        Enter the appropriate URL (e.g., http://127.0.0.1:8000/orders?token_id=order_1).
+        Hit Send.
 
 
 # Project: Cryptocurrency Market Data & TWAP Paper Trading API
