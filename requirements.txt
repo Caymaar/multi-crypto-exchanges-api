@@ -1,7 +1,8 @@
-websockets
+websocket
 aiohttp
 requests
 pandas
 tabulate
 fastapi
 uvicorn
+sqlalchemy

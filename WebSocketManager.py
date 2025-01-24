@@ -1,7 +1,12 @@
 import websockets
 import json
 from typing import Dict, List, Any
+import ssl
+import asyncio
 
+ssl_context = ssl._create_default_https_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 class WebSocketManager:
     """
@@ -27,7 +32,7 @@ class WebSocketManager:
             websockets.WebSocketClientProtocol: The WebSocket connection object.
         """
         url = f"wss://stream.binance.com:9443/ws/{symbol.lower()}@depth5"
-        return await websockets.connect(url)
+        return await websockets.connect(url, ssl=ssl_context)
 
     async def get_order_book_data(self, exchange_name: str, symbol: str) -> Dict[str, List[Dict[str, float]]]:
         """
@@ -75,3 +80,13 @@ class WebSocketManager:
             }
 
         return {}
+
+async def main():
+    manager = WebSocketManager()
+    order_book = await manager.get_order_book_data("binance", "BTCUSDT")
+    print(order_book)
+
+# Use asyncio.run() to run the event loop (recommended over get_event_loop())
+if __name__ == "__main__":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.run(main())
