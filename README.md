@@ -29,7 +29,7 @@ Configure Postman: Open Postman, and configure the following collections to inte
 
 
 
-# 3. Submit TWAP Orders
+# 3. Submit TWAP Orders (Api_key required)
 
     POST /orders/twap
 
