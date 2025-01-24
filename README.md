@@ -1,3 +1,127 @@
+Cryptocurrency Market Data & TWAP Paper Trading API - README
+Overview
+
+This API allows you to access historical market data from various cryptocurrency exchanges and submit Time-Weighted Average Price (TWAP) orders. The server simulates order execution based on real-time market data, divided into time slices over a specified duration. This document provides instructions on how to interact with the server using Postman.
+Getting Started
+
+To start using the API, follow these steps:
+
+    Ensure the server is running: You need to have the FastAPI server running on your local machine or a remote server.
+
+uvicorn server:app --reload
+
+This will start the server locally at http://127.0.0.1:8000 (http://localhost:8000/).
+
+Install Postman: If you don't have Postman installed, download it from the Postman website.
+
+Configure Postman: Open Postman, and configure the following collections to interact with the API.
+
+3. Submit TWAP Orders
+
+    POST /orders/twap
+
+This endpoint allows you to submit one or more TWAP (Time-Weighted Average Price) orders. You need to specify the token_id, exchange, symbol, quantity, price, start_time, end_time, and interval.
+
+Example Request (JSON body for submitting a single order):
+
+{
+  "token_id": "order_1",
+  "exchange": "binance",
+  "symbol": "BTCUSDT",
+  "quantity": 1.0,
+  "price": 35000,
+  "start_time": "2025-01-01T00:00:00",
+  "end_time": "2025-01-01T01:00:00",
+  "interval": 5
+}
+
+Example Request (JSON body for submitting multiple orders):
+
+[
+  {
+    "token_id": "order_1",
+    "exchange": "binance",
+    "symbol": "BTCUSDT",
+    "quantity": 1.0,
+    "price": 35000,
+    "start_time": "2025-01-01T00:00:00",
+    "end_time": "2025-01-01T01:00:00",
+    "interval": 5
+  },
+  {
+    "token_id": "order_2",
+    "exchange": "coinbasepro",
+    "symbol": "ETHUSDT",
+    "quantity": 5.0,
+    "price": 2000,
+    "start_time": "2025-01-01T02:00:00",
+    "end_time": "2025-01-01T03:00:00",
+    "interval": 10
+  }
+]
+
+Response (Success):
+
+[
+  {
+    "token_id": "order_1",
+    "symbol": "BTCUSDT",
+    "side": "buy",
+    "quantity": 1.0,
+    "limit_price": 35000,
+    "status": "Accepted",
+    "creation_time": "2025-01-01T00:00:00"
+  }
+]
+
+4. Get All Orders
+
+    GET /orders
+
+This endpoint retrieves a list of all orders that have been placed. You can filter the list by token_id or status (open, closed).
+
+Example Request:
+
+GET http://127.0.0.1:8000/orders?token_id=order_1
+
+Response:
+
+[
+  {
+    "token_id": "order_1",
+    "symbol": "BTCUSDT",
+    "side": "buy",
+    "quantity": 1.0,
+    "limit_price": 35000,
+    "status": "Accepted",
+    "creation_time": "2025-01-01T00:00:00"
+  }
+]
+
+5. Get Order by Token ID
+
+    GET /orders/{token_id}
+
+This endpoint retrieves the detailed status of a specific order based on its token_id.
+
+Example Request:
+
+GET http://127.0.0.1:8000/orders/order_1
+
+Response:
+
+{
+  "token_id": "order_1",
+  "symbol": "BTCUSDT",
+  "side": "buy",
+  "quantity": 1.0,
+  "limit_price": 35000,
+  "status": "Accepted",
+  "creation_time": "2025-01-01T00:00:00"
+}
+
+
+
 # Project: Cryptocurrency Market Data & TWAP Paper Trading API
 ## Overview
 Your task is to create a complete system consisting of both a server API and a client implementation that together enable paper trading using TWAP (Time-Weighted Average Price) orders executed against real market data. The system will collect and standardize order book data from cryptocurrency exchanges in real-time, then use this data to simulate order execution.
@@ -94,3 +218,4 @@ If you complete the core requirements, you can enhance your project with: - A si
   - Team member names
   - GitHub repository link
   - Any special instructions
+
