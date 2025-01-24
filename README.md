@@ -16,6 +16,19 @@ Install Postman: If you don't have Postman installed, download it from the Postm
 
 Configure Postman: Open Postman, and configure the following collections to interact with the API.
 
+# Generate Api_key
+    POST /api_key
+    http://localhost:8000/generate_api_key?username=your_username
+    
+    Example Response:
+    {
+      "username": "your_username
+      "api_key": "your_api_key"
+    }
+
+
+
+
 # 3. Submit TWAP Orders
 
     POST /orders/twap
@@ -23,6 +36,19 @@ Configure Postman: Open Postman, and configure the following collections to inte
 This endpoint allows you to submit one or more TWAP (Time-Weighted Average Price) orders. You need to specify the token_id, exchange, symbol, quantity, price, start_time, end_time, and interval.
 
 # Example Request (JSON body for submitting a single order):
+```plaintext
+  http://localhost:8000/orders/twap?Content-Type=application/json
+```
+
+In the authorization tab, select the type as API Key and enter the key as the username and the value as the api_key.
+It should follow : 
+```plaintext
+{
+  "Key": "Authorization",
+  "Value": "Bearer API_KEY",
+  "Add to" : "Header",
+}
+```
 
 ```plaintext
 {
@@ -35,9 +61,11 @@ This endpoint allows you to submit one or more TWAP (Time-Weighted Average Price
   "end_time": "2025-01-01T01:00:00",
   "interval": 5
 }
+```
 
-Example Request (JSON body for submitting multiple orders):
 
+# Example Request (JSON body for submitting multiple orders):
+```plaintext
 [
   {
     "token_id": "order_1",
@@ -81,7 +109,7 @@ Response (Success):
 ```
 
 
-# 4. Get All Orders
+# 4. Get All Orders (Api_key required)
 
     GET /orders
 
@@ -106,7 +134,7 @@ GET http://127.0.0.1:8000/orders?token_id=order_1
 ```
 
 
-# 5. Get Order by Token ID
+# 5. Get Order by Token ID (Api_key required)
 
     GET /orders/{token_id}
 
