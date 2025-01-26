@@ -2,6 +2,14 @@ import asyncio
 from Exchange import Binance, OKX, CoinbasePro
 from WebSocketManager import WebSocketManager
 from TWAPOrder import TWAPOrder
+import nest_asyncio
+import sys
+
+nest_asyncio.apply()
+
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 
 async def main():
     # Crée une instance de WebSocketManager
@@ -18,7 +26,7 @@ async def main():
     symbol = "BTCUSDT"
     side = "buy"
     quantity = 0.01
-    duration = 5  # Durée totale en secondes
+    duration = 1  # Durée totale en secondes
     slice_interval = 1  # Intervalle entre les tranches en secondes
     limit_price = 105580  # Prix limite facultatif
 

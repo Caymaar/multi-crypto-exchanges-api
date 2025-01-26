@@ -24,6 +24,8 @@ class TWAPOrder:
         self.status = status
         self.creation_time = datetime.now()
 
+        self.execute_twap()
+
     def to_dict(self):
         """
         Convert TWAPOrder instance to a dictionary for serialization.
@@ -122,6 +124,9 @@ class TWAPOrder:
             await asyncio.sleep(self.slice_interval)  # Wait before the next slice
 
         print(f"TWAP order execution completed on {self.exchange.name}")
+        if self.remaining_quantity < 1e-6:
+            self.remaining_quantity = 0
+
         self.close_order()
         self.report()
 
@@ -159,6 +164,7 @@ class TWAPOrder:
         print(f"Side: {self.side}")
         print(f"Total Quantity: {self.quantity}")
         print(f"Executed Quantity: {self.executed_quantity}")
+
         print(f"Remaining Quantity: {self.remaining_quantity}")
         print(f"Execution Logs:")
         for log in self.execution_logs:
