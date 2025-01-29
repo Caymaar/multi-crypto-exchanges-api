@@ -114,7 +114,7 @@ class OrderBookGUI:
         self.token_id_entry.pack(side="left", padx=5)
 
 
-        ttk.Label(twap_frame, text="Symbol: (ex BTC-USD)").pack(side="left", padx=5)
+        ttk.Label(twap_frame, text="Symbol: (ex BTCUSDT)").pack(side="left", padx=5)
         self.twap_symbol_var = tk.StringVar()
         self.twap_symbol_combo = ttk.Combobox(twap_frame, textvariable=self.twap_symbol_var)
         self.twap_symbol_combo.pack(side="left", padx=5)
@@ -174,8 +174,13 @@ class OrderBookGUI:
         """Fetch available trading pairs from the API."""
         exchange_name = self.symbols_exchange_var.get()
 
+        available_exchanges = ["binance", "okx", "coinbase"]
+
         if not exchange_name:
             self.show_result("Please enter an exchange name.")
+            return
+        if exchange_name not in available_exchanges:
+            self.show_result("Exchange name not supported. Please enter one of the following: binance, okx, coinbase")
             return
 
         headers = {
@@ -198,8 +203,8 @@ class OrderBookGUI:
         """Fetch and display historical candlesticks data (klines)."""
         exchange = self.exchange_var.get()
         symbol = self.symbol_var.get()
-        # start_date = self.start_date_var.get()
-        # end_date = self.end_date_var.get()
+        start_date = self.start_date_var.get()
+        end_date = self.end_date_var.get()
         interval = self.interval_var.get()
         limit = self.limit_var.get()
 
@@ -208,11 +213,8 @@ class OrderBookGUI:
             self.show_result("Please provide valid inputs for exchange and symbol.")
             return
 
-
-        start_date = int(
-            (datetime.now() - timedelta(days=5)).timestamp() * 1000)
-
-        end_date = int(datetime.now().timestamp() * 1000)
+        # start_date = int(datetime(2024, 1, 1).timestamp() * 1000)
+        # end_date = int(datetime(2024, 1, 10).timestamp() * 1000)
         # Prepare the query parameters
         params = {
             "start_date": start_date,
@@ -372,3 +374,4 @@ if __name__ == "__main__":
     root.mainloop()
     # apikey
     # dd8aa84526f720a9b4f73456b98eaa1ec49e5718e2b59b38a12331b6c2b1bef4
+    # b358e983c5168810bd9de11e8c3e1b04b55529dfc474b9420aade14ee4750ddf

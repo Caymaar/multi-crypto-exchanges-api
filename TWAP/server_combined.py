@@ -18,6 +18,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from WebSocketManager import WebSocketManager
 from contextlib import asynccontextmanager
+import threading
 
 # Initialize FastAPI app
 # @asynccontextmanager
@@ -326,7 +327,7 @@ async def submit_twap_order(requests: List[TWAPOrderRequest], background_tasks: 
                 ws_manager=ws_manager
             )
 
-            await twap_order.execute_twap()
+            threading.Thread(target=lambda: asyncio.run(twap_order.execute_twap()), daemon=True).start()
             orders.append(twap_order)
 
             # Add order response

@@ -54,7 +54,7 @@ class TWAPOrder:
         print(f"WebSocket connected for {self.symbol} on {self.exchange.name}")
 
     def close_order(self):
-        self.status = "closed"  # Update status when the order is closed
+        self.status = "filled"  # Update status when the order is closed
 
     def get_order_details(self):
         return {
