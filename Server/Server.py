@@ -20,6 +20,10 @@ app = FastAPI(title="Exchange API", description="dev version")
 # formatter = AdvancedSymbolFormatter(symbols_dict)
 subscription_manager = AggregatedSubscriptionManager()
 
+@app.get("/health")
+async def health_check():
+    """Endpoint to check the health of the API"""
+    return {"status": "healthy"}
 
 @app.get("/exchanges")
 async def get_exchanges():
