@@ -1,13 +1,24 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
-from Authentification import LoginRequest, RegisterRequest, TokenResponse, create_token, verify_token, invalidate_token
-from DataBaseManager import dbm
-from datetime import datetime
+from Utilities.Authentification import LoginRequest, RegisterRequest, TokenResponse, create_token, verify_token, verify_ws_token, invalidate_token
+from Utilities.DataBaseManager import dbm
+from Utilities.SubscriptionManager import AggregatedSubscriptionManager
+from Utilities.SymbolFormatter import AdvancedSymbolFormatter
+from Utilities.TWAPOrder import simulate_twap_order, TWAPOrderRequest
 from Exchanges import exchange_dict
-from fastapi import Query
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query, Depends
+from fastapi.security import HTTPAuthorizationCredentials
+from datetime import datetime
 import pandas as pd
+import asyncio
 
 app = FastAPI(title="Exchange API", description="dev version")
+
+symbols_dict = {
+    exchange: exchange_obj.get_available_trading_pairs()
+    for exchange, exchange_obj in exchange_dict.items()
+}
+
+formatter = AdvancedSymbolFormatter(symbols_dict)
+subscription_manager = AggregatedSubscriptionManager()
 
 
 @app.get("/exchanges")
@@ -47,12 +58,16 @@ async def get_klines(
         end_date: str = Query(None, description="End date in format YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"),
         interval: str = Query("1d", description="Candle interval, e.g., 1m, 5m, 1h")
 ):
-    
     if exchange not in exchange_dict:
         raise HTTPException(status_code=404, detail="Exchange not found")
     
     exchange_obj = exchange_dict[exchange]
-    
+
+    # Conversion du symbole standard en symbole propre à l'exchange.
+    # Par exemple, "BTC-USD" devient "BTCUSDT" pour Binance, "BTC-USDT" pour OKX et "BTC/USD" pour Kraken.
+    formatted_symbol = formatter.to_exchange(symbol, exchange)
+    print(f"Input symbol: {symbol} converted to exchange-specific format: {formatted_symbol}")
+
     if start_date is not None:
         start_time = parse_date(start_date)
     else:
@@ -69,8 +84,8 @@ async def get_klines(
     if interval not in exchange_obj.valid_intervals:
         raise HTTPException(status_code=400, detail=f"Invalid interval '{interval}'. Valid intervals are: {', '.join(exchange_obj.valid_intervals.keys())}")
     
-    print(f"Getting klines for {exchange} - {symbol} - {interval} - {start_date} - {end_date}")
-    klines = await exchange_obj.get_historical_klines(symbol, interval, start_time, end_time)
+    print(f"Getting klines for {exchange} - {formatted_symbol} - {interval} - {start_date} - {end_date}")
+    klines = await exchange_obj.get_historical_klines(formatted_symbol, interval, start_time, end_time)
     return klines
 
 ############################################################################################################
@@ -151,6 +166,108 @@ async def ping():
     """Simple ping endpoint"""
     return {"message": "pong"}
 
+############################################################################################################
+# Websocket
+############################################################################################################
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
+    """
+    Endpoint WebSocket auquel les clients se connectent après authentification.
+    Le token est passé en query string, par exemple : 
+       ws://localhost:8000/ws?token=VOTRE_TOKEN
+    Les clients envoient des messages JSON de la forme :
+      {"action": "subscribe", "exchange": "kraken", "symbol": "BTC-USD"}
+      {"action": "unsubscribe", "exchange": "kraken", "symbol": "BTC-USD"}
+    Le serveur diffuse ensuite, toutes les secondes, les données agrégées des carnets d'ordres.
+    """
+    try:
+        # On attend que la fonction vérifie le token et retourne le username.
+        username = await verify_ws_token(token)
+        print(f"User {username} connected to WebSocket")
+    except Exception as e:
+        print(f"Invalid token: {e}")
+        await websocket.close(code=1008, reason="Invalid token")
+        return
+
+    # Si le token est valide, on accepte la connexion
+    await websocket.accept()
+
+    # Le reste de votre logique d’abonnement, par exemple en utilisant votre AggregatedSubscriptionManager
+    client_subscriptions = set()
+    try:
+        while True:
+            message = await websocket.receive_json()
+            action = message.get("action")
+            exchange = message.get("exchange")
+            symbol = message.get("symbol")
+            # Ici, vous pouvez (optionnellement) standardiser le symbole avec votre AdvancedSymbolFormatter
+            # et ensuite gérer l'abonnement via votre gestionnaire
+            if action == "subscribe":
+                client_subscriptions.add((exchange, symbol))
+                await subscription_manager.subscribe(websocket, exchange, symbol, formatter)
+                await websocket.send_json({"message": f"Subscribed to {exchange} {symbol}"})
+            elif action == "unsubscribe":
+                key = (exchange, symbol)
+                if key in client_subscriptions:
+                    client_subscriptions.remove(key)
+                    await subscription_manager.unsubscribe(websocket, exchange, symbol, formatter)
+                    await websocket.send_json({"message": f"Unsubscribed from {exchange} {symbol}"})
+                else:
+                    await websocket.send_json({"error": "Not subscribed to this symbol"})
+            else:
+                await websocket.send_json({"error": "Unknown action"})
+    except WebSocketDisconnect:
+        for (exchange, symbol) in client_subscriptions:
+            await subscription_manager.unsubscribe(websocket, exchange, symbol, formatter)
+
+############################################################################################################
+# TWAP Orders
+############################################################################################################
+
+# --- Endpoint REST: POST /orders/twap ---
+@app.post("/orders/twap", status_code=202)
+async def submit_twap_order(order_req: TWAPOrderRequest, username: str = Depends(verify_token)):
+    try:
+        dbm.create_order_token(order_req, username)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating order: {e}")
+    
+    # Lancer la simulation TWAP en tâche de fond
+    asyncio.create_task(simulate_twap_order(
+        order_id=order_req.order_id,
+        username=username,
+        symbol=order_req.symbol,
+        side=order_req.side,
+        total_quantity=order_req.total_quantity,
+        limit_price=order_req.limit_price,
+        duration=order_req.duration,
+        interval=order_req.interval
+    ))
+    return {"message": "TWAP order accepted", "order_id": order_req.order_id}
+
+# --- Endpoint REST: GET /orders ---
+@app.get("/orders")
+async def list_orders(order_id: str = None, order_status: str = None, username: str = Depends(verify_token)):
+    return dbm.get_orders(username, order_id, order_status)
+
+# --- Endpoint REST: GET /orders/{order_id} ---
+@app.get("/orders/{order_id}")
+async def get_order_detail(order_id: str, username: str = Depends(verify_token)):
+    return dbm.get_order_details(username, order_id)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Event handler for server shutdown"""
+    open_orders = dbm.get_orders(order_status="open")
+    for order in open_orders:
+        dbm.update_order_status(order["order_id"], "cancel")
+    print("All open orders have been cancelled")
+    
+############################################################################################################
+# Main
+############################################################################################################
 
 if __name__ == "__main__":
     import uvicorn

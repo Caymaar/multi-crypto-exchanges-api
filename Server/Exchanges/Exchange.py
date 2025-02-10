@@ -144,7 +144,7 @@ class OKX(Exchange):
             if "data" in data:
                 return [instrument["instId"] for instrument in data["data"]]
             else:
-                raise Exception(f"OKX API error: No data found in response.")
+                raise Exception("OKX API error: No data found in response.")
         else:
             raise Exception(f"OKX API error: {response.status_code} - {response.text}")
 

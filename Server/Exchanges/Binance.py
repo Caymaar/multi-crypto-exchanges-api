@@ -4,6 +4,8 @@ import asyncio
 import aiohttp
 from datetime import datetime
 
+binance_order_books = {}
+
 class Binance(Exchange):
 
     name = "binance"
@@ -15,6 +17,7 @@ class Binance(Exchange):
         self.SYMBOLE_URL = "/api/v3/exchangeInfo"
         self.limit = 1000
         self.ws_url = "wss://stream.binance.com:9443/ws"
+        self.stop_events = {}
 
         self.valid_intervals = {
             "1m": 60,
@@ -102,30 +105,62 @@ class Binance(Exchange):
         else:
             raise Exception(f"Binance API error: {response.status_code} - {response.text}")
 
+    async def subscribe_order_book(self, symbol: str, callback):
+        """
+        Se connecte au WebSocket Binance pour le symbol donné (ex: BTCUSDT@depth10)
+        et envoie les données du carnet d'ordres au callback jusqu'à ce qu'on 
+        appelle unsubscribe_order_book(symbol).
+        """
+        # On génère le stream
+        stream = f"{symbol.lower()}@depth10"
+        url = f"{self.ws_url}/{stream}"
 
-if __name__ == "__main__":
-    import pandas as pd
-    from datetime import datetime
-    def parse_date(date_str: str) -> int:
-        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
-            try:
-                return int(datetime.strptime(date_str, fmt).timestamp() * 1000)
-            except ValueError:
-                pass
-        raise ValueError(f"Invalid date format: {date_str}. Supported formats are YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.")
+        # On crée l'Event s'il n'existe pas
+        if symbol not in self.stop_events:
+            self.stop_events[symbol] = asyncio.Event()
+        stop_event = self.stop_events[symbol]
+        stop_event.clear()  # On s'assure qu'il n'est pas déjà set
 
+        # Connexion WS
+        async with aiohttp.ClientSession() as session:
+            async with session.ws_connect(url) as ws:
+                print(f"[Binance] Subscribed to {symbol}@depth10")
+                async for msg in ws:
+                    # Check si on doit arrêter
+                    if stop_event.is_set():
+                        print(f"[Binance] Unsubscribing from {symbol}@depth10")
+                        break
 
-    start_date = "2021-01-01"
-    end_date = "2021-12-31"
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        data = msg.json()
+                        # Première réception : snapshot
+                        if "lastUpdateId" in data:
+                            standardized = {
+                                "bids": [[float(p), float(q)] for p, q in data.get("bids", [])],
+                                "asks": [[float(p), float(q)] for p, q in data.get("asks", [])],
+                                "timestamp": None
+                            }
+                            callback(standardized)
+                        # Mises à jour incrémentielles (depthUpdate)
+                        elif data.get("e") == "depthUpdate":
+                            standardized = {
+                                "bids": [[float(p), float(q)] for p, q in data.get("b", [])],
+                                "asks": [[float(p), float(q)] for p, q in data.get("a", [])],
+                                "timestamp": data.get("E")
+                            }
+                            callback(standardized)
+                    elif msg.type == aiohttp.WSMsgType.ERROR:
+                        print("[Binance] WebSocket error on", symbol)
+                        break
 
-    if start_date:
-        start_time = parse_date(start_date)
-    else:
-        start_time = pd.to_datetime("2021-01-01").timestamp() * 1000
+                print(f"[Binance] Connection closed for {symbol}@depth10")
 
-    if end_date:
-        end_time = parse_date(end_date)
-    else:
-        end_time = pd.to_datetime("today").timestamp() * 1000
-
-    print(Binance().get_historical_klines("ETHBTC", "1d", start_time, end_time))
+    def unsubscribe_order_book(self, symbol: str):
+        """
+        Déclenche l'arrêt de la boucle d'écoute 
+        (si subscribe_order_book tourne encore pour ce symbol).
+        """
+        if symbol in self.stop_events:
+            self.stop_events[symbol].set()
+        else:
+            print(f"[Binance] No active subscription to unsubscribe for {symbol}")

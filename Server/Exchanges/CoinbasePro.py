@@ -158,3 +158,60 @@ class CoinbasePro(Exchange):
             return [product['id'] for product in data]
         else:
             raise Exception(f"Coinbase Pro API error: {response.status_code} - {response.text}")
+
+    async def subscribe_order_book(self, symbol: str, callback):
+        """
+        Connect to Coinbase Pro’s WebSocket and subscribe to level2 order book updates for a given symbol.
+        The callback is called with standardized order book data.
+        
+        :param symbol: Trading pair symbol (e.g., 'BTC-USD')
+        :param callback: A function to be called with the standardized order book dict.
+        """
+        ws_endpoint = "wss://ws-feed.exchange.coinbase.com"
+        # Build a subscription message to the "level2" channel
+        subscription_message = {
+            "type": "subscribe",
+            "channels": [{
+                "name": "level2",
+                "product_ids": [symbol]
+            }]
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.ws_connect(ws_endpoint) as ws:
+                await ws.send_json(subscription_message)
+                async for msg in ws:
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        data = msg.json()
+                        # Coinbase Pro sends a "snapshot" message (full order book) first and then "l2update" messages.
+                        # A production system would merge the snapshot with incremental updates.
+                        if data.get("type") == "snapshot":
+                            standardized = {
+                                "exchange": "coinbase_pro",
+                                "symbol": data.get("product_id"),
+                                "bids": [[float(price), float(size)] for price, size in data.get("bids", [])],
+                                "asks": [[float(price), float(size)] for price, size in data.get("asks", [])],
+                                "timestamp": None  # The snapshot does not include a timestamp, so you might use the current time.
+                            }
+                            callback(standardized)
+                        elif data.get("type") == "l2update":
+                            # l2update messages include only the changes.
+                            changes = data.get("changes", [])
+                            bids = []
+                            asks = []
+                            for change in changes:
+                                side, price, size = change
+                                if side.lower() == "buy":
+                                    bids.append([float(price), float(size)])
+                                else:
+                                    asks.append([float(price), float(size)])
+                            standardized = {
+                                "exchange": "coinbase_pro",
+                                "symbol": data.get("product_id", symbol),
+                                "bids": bids,
+                                "asks": asks,
+                                "timestamp": data.get("time")  # typically an ISO timestamp
+                            }
+                            callback(standardized)
+                    elif msg.type == aiohttp.WSMsgType.ERROR:
+                        print("WebSocket error on Coinbase Pro")
+                        break

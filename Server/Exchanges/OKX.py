@@ -108,6 +108,52 @@ class OKX(Exchange):
             if "data" in data:
                 return [instrument["instId"] for instrument in data["data"]]
             else:
-                raise Exception(f"OKX API error: No data found in response.")
+                raise Exception("OKX API error: No data found in response.")
         else:
             raise Exception(f"OKX API error: {response.status_code} - {response.text}")
+
+    async def subscribe_order_book(self, symbol: str, callback):
+        """
+        Connect to OKX’s WebSocket and subscribe to order book updates for a given symbol.
+        The callback is called with standardized order book data.
+        
+        :param symbol: Trading pair symbol (e.g., 'BTC-USDT')
+        :param callback: A function to be called with the standardized order book dict.
+        """
+        # OKX WebSocket public endpoint
+        ws_endpoint = "wss://ws.okx.com:8443/ws/v5/public"
+        # Build a subscription message – here we use the "books5" channel (a 5‐level order book)
+        subscription_message = {
+            "op": "subscribe",
+            "args": [{
+                "channel": "books5",
+                "instId": symbol
+            }]
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.ws_connect(ws_endpoint) as ws:
+                # Send the subscription message
+                await ws.send_json(subscription_message)
+                async for msg in ws:
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        data = msg.json()
+                        # OKX typically sends messages in the format:
+                        # {
+                        #   "arg": {"channel": "books5", "instId": "BTC-USDT"},
+                        #   "data": [{
+                        #         "bids": [["9999", "0.2", "1"], ...],
+                        #         "asks": [["10000", "0.1", "1"], ...],
+                        #         "ts": "1578969180502"
+                        #     }]
+                        # }
+                        if "data" in data:
+                            order_data = data["data"][0]
+                            standardized = {
+                                "bids": [[float(item[0]), float(item[1])] for item in order_data.get("bids", [])],
+                                "asks": [[float(item[0]), float(item[1])] for item in order_data.get("asks", [])],
+                                "timestamp": order_data.get("ts")
+                            }
+                            callback(standardized)
+                    elif msg.type == aiohttp.WSMsgType.ERROR:
+                        print("WebSocket error on OKX")
+                        break
