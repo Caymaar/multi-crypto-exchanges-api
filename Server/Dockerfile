@@ -9,7 +9,7 @@ WORKDIR /app
 COPY . /app
 
 # Installer les dépendances avec uv
-RUN uv pip venv
+RUN uv venv
 
 # Exposer le port du serveur (ajustez si nécessaire)
 EXPOSE 8000
