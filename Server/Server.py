@@ -12,12 +12,12 @@ import asyncio
 
 app = FastAPI(title="Exchange API", description="dev version")
 
-symbols_dict = {
-    exchange: exchange_obj.get_available_trading_pairs()
-    for exchange, exchange_obj in exchange_dict.items()
-}
+# symbols_dict = {
+#     exchange: exchange_obj.get_available_trading_pairs()
+#     for exchange, exchange_obj in exchange_dict.items()
+# }
 
-formatter = AdvancedSymbolFormatter(symbols_dict)
+# formatter = AdvancedSymbolFormatter(symbols_dict)
 subscription_manager = AggregatedSubscriptionManager()
 
 
@@ -50,43 +50,43 @@ def parse_date(date_str: str) -> int:
             pass
     raise ValueError(f"Invalid date format: {date_str}. Supported formats are YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.")
 
-@app.get("/klines/{exchange}/{symbol}")
-async def get_klines(
-        exchange: str,
-        symbol: str,
-        start_date: str = Query(None, description="Start date in format YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"),
-        end_date: str = Query(None, description="End date in format YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"),
-        interval: str = Query("1d", description="Candle interval, e.g., 1m, 5m, 1h")
-):
-    if exchange not in exchange_dict:
-        raise HTTPException(status_code=404, detail="Exchange not found")
+# @app.get("/klines/{exchange}/{symbol}")
+# async def get_klines(
+#         exchange: str,
+#         symbol: str,
+#         start_date: str = Query(None, description="Start date in format YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"),
+#         end_date: str = Query(None, description="End date in format YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"),
+#         interval: str = Query("1d", description="Candle interval, e.g., 1m, 5m, 1h")
+# ):
+#     if exchange not in exchange_dict:
+#         raise HTTPException(status_code=404, detail="Exchange not found")
     
-    exchange_obj = exchange_dict[exchange]
+#     exchange_obj = exchange_dict[exchange]
 
-    # Conversion du symbole standard en symbole propre à l'exchange.
-    # Par exemple, "BTC-USD" devient "BTCUSDT" pour Binance, "BTC-USDT" pour OKX et "BTC/USD" pour Kraken.
-    formatted_symbol = formatter.to_exchange(symbol, exchange)
-    print(f"Input symbol: {symbol} converted to exchange-specific format: {formatted_symbol}")
+#     # Conversion du symbole standard en symbole propre à l'exchange.
+#     # Par exemple, "BTC-USD" devient "BTCUSDT" pour Binance, "BTC-USDT" pour OKX et "BTC/USD" pour Kraken.
+#     formatted_symbol = formatter.to_exchange(symbol, exchange)
+#     print(f"Input symbol: {symbol} converted to exchange-specific format: {formatted_symbol}")
 
-    if start_date is not None:
-        start_time = parse_date(start_date)
-    else:
-        start_time = int((pd.to_datetime("today") - pd.DateOffset(days=5)).timestamp() * 1000)
+#     if start_date is not None:
+#         start_time = parse_date(start_date)
+#     else:
+#         start_time = int((pd.to_datetime("today") - pd.DateOffset(days=5)).timestamp() * 1000)
     
-    if end_date is not None:
-        end_time = parse_date(end_date)
-    else:
-        end_time = int(pd.to_datetime("today").timestamp() * 1000)
+#     if end_date is not None:
+#         end_time = parse_date(end_date)
+#     else:
+#         end_time = int(pd.to_datetime("today").timestamp() * 1000)
     
-    if start_time >= end_time:
-        raise HTTPException(status_code=400, detail="Invalid date range")
+#     if start_time >= end_time:
+#         raise HTTPException(status_code=400, detail="Invalid date range")
     
-    if interval not in exchange_obj.valid_intervals:
-        raise HTTPException(status_code=400, detail=f"Invalid interval '{interval}'. Valid intervals are: {', '.join(exchange_obj.valid_intervals.keys())}")
+#     if interval not in exchange_obj.valid_intervals:
+#         raise HTTPException(status_code=400, detail=f"Invalid interval '{interval}'. Valid intervals are: {', '.join(exchange_obj.valid_intervals.keys())}")
     
-    print(f"Getting klines for {exchange} - {formatted_symbol} - {interval} - {start_date} - {end_date}")
-    klines = await exchange_obj.get_historical_klines(formatted_symbol, interval, start_time, end_time)
-    return klines
+#     print(f"Getting klines for {exchange} - {formatted_symbol} - {interval} - {start_date} - {end_date}")
+#     klines = await exchange_obj.get_historical_klines(formatted_symbol, interval, start_time, end_time)
+#     return klines
 
 ############################################################################################################
 # Authentification
@@ -170,56 +170,56 @@ async def ping():
 # Websocket
 ############################################################################################################
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
-    """
-    Endpoint WebSocket auquel les clients se connectent après authentification.
-    Le token est passé en query string, par exemple : 
-       ws://localhost:8000/ws?token=VOTRE_TOKEN
-    Les clients envoient des messages JSON de la forme :
-      {"action": "subscribe", "exchange": "kraken", "symbol": "BTC-USD"}
-      {"action": "unsubscribe", "exchange": "kraken", "symbol": "BTC-USD"}
-    Le serveur diffuse ensuite, toutes les secondes, les données agrégées des carnets d'ordres.
-    """
-    try:
-        # On attend que la fonction vérifie le token et retourne le username.
-        username = await verify_ws_token(token)
-        print(f"User {username} connected to WebSocket")
-    except Exception as e:
-        print(f"Invalid token: {e}")
-        await websocket.close(code=1008, reason="Invalid token")
-        return
+# @app.websocket("/ws")
+# async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
+#     """
+#     Endpoint WebSocket auquel les clients se connectent après authentification.
+#     Le token est passé en query string, par exemple : 
+#        ws://localhost:8000/ws?token=VOTRE_TOKEN
+#     Les clients envoient des messages JSON de la forme :
+#       {"action": "subscribe", "exchange": "kraken", "symbol": "BTC-USD"}
+#       {"action": "unsubscribe", "exchange": "kraken", "symbol": "BTC-USD"}
+#     Le serveur diffuse ensuite, toutes les secondes, les données agrégées des carnets d'ordres.
+#     """
+#     try:
+#         # On attend que la fonction vérifie le token et retourne le username.
+#         username = await verify_ws_token(token)
+#         print(f"User {username} connected to WebSocket")
+#     except Exception as e:
+#         print(f"Invalid token: {e}")
+#         await websocket.close(code=1008, reason="Invalid token")
+#         return
 
-    # Si le token est valide, on accepte la connexion
-    await websocket.accept()
+#     # Si le token est valide, on accepte la connexion
+#     await websocket.accept()
 
-    # Le reste de votre logique d’abonnement, par exemple en utilisant votre AggregatedSubscriptionManager
-    client_subscriptions = set()
-    try:
-        while True:
-            message = await websocket.receive_json()
-            action = message.get("action")
-            exchange = message.get("exchange")
-            symbol = message.get("symbol")
-            # Ici, vous pouvez (optionnellement) standardiser le symbole avec votre AdvancedSymbolFormatter
-            # et ensuite gérer l'abonnement via votre gestionnaire
-            if action == "subscribe":
-                client_subscriptions.add((exchange, symbol))
-                await subscription_manager.subscribe(websocket, exchange, symbol, formatter)
-                await websocket.send_json({"message": f"Subscribed to {exchange} {symbol}"})
-            elif action == "unsubscribe":
-                key = (exchange, symbol)
-                if key in client_subscriptions:
-                    client_subscriptions.remove(key)
-                    await subscription_manager.unsubscribe(websocket, exchange, symbol, formatter)
-                    await websocket.send_json({"message": f"Unsubscribed from {exchange} {symbol}"})
-                else:
-                    await websocket.send_json({"error": "Not subscribed to this symbol"})
-            else:
-                await websocket.send_json({"error": "Unknown action"})
-    except WebSocketDisconnect:
-        for (exchange, symbol) in client_subscriptions:
-            await subscription_manager.unsubscribe(websocket, exchange, symbol, formatter)
+#     # Le reste de votre logique d’abonnement, par exemple en utilisant votre AggregatedSubscriptionManager
+#     client_subscriptions = set()
+#     try:
+#         while True:
+#             message = await websocket.receive_json()
+#             action = message.get("action")
+#             exchange = message.get("exchange")
+#             symbol = message.get("symbol")
+#             # Ici, vous pouvez (optionnellement) standardiser le symbole avec votre AdvancedSymbolFormatter
+#             # et ensuite gérer l'abonnement via votre gestionnaire
+#             if action == "subscribe":
+#                 client_subscriptions.add((exchange, symbol))
+#                 await subscription_manager.subscribe(websocket, exchange, symbol, formatter)
+#                 await websocket.send_json({"message": f"Subscribed to {exchange} {symbol}"})
+#             elif action == "unsubscribe":
+#                 key = (exchange, symbol)
+#                 if key in client_subscriptions:
+#                     client_subscriptions.remove(key)
+#                     await subscription_manager.unsubscribe(websocket, exchange, symbol, formatter)
+#                     await websocket.send_json({"message": f"Unsubscribed from {exchange} {symbol}"})
+#                 else:
+#                     await websocket.send_json({"error": "Not subscribed to this symbol"})
+#             else:
+#                 await websocket.send_json({"error": "Unknown action"})
+#     except WebSocketDisconnect:
+#         for (exchange, symbol) in client_subscriptions:
+#             await subscription_manager.unsubscribe(websocket, exchange, symbol, formatter)
 
 ############################################################################################################
 # TWAP Orders
