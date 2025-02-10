@@ -15,4 +15,4 @@ RUN uv pip install --system pyproject.toml
 EXPOSE 8000
 
 # Lancer le serveur avec uv
-CMD ["uv", "pip", "sync", "pyproject.toml", "&&", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "pip", "sync", "pyproject.toml", "&&", "uvicorn", "Server:app", "--host", "0.0.0.0", "--port", "8000"]
