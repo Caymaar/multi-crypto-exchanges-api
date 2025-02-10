@@ -23,7 +23,7 @@ jobs:
         run: docker compose build
 
       - name: Start server
-        run: docker compose up -d Server
+        run: docker compose up -d server
 
       - name: Wait for server to be ready
         run: |
