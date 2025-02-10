@@ -1,0 +1,32 @@
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker images
+        run: docker-compose build
+
+      - name: Start server
+        run: docker-compose up -d server
+
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for server to be ready..."
+          until $(curl --output /dev/null --silent --fail http://localhost:8000/ping); do
+            printf '.'
+            sleep 2
+          done
+          echo "Server is up!"
+
+      - name: Run tests
+        run: docker-compose up --exit-code-from test test
