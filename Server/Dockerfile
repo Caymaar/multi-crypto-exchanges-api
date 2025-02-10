@@ -9,7 +9,7 @@ WORKDIR /app
 COPY . /app
 
 # Installer les dépendances avec uv
-RUN uv pip install pyproject.toml
+RUN uv pip install --system pyproject.toml
 
 # Exposer le port du serveur (ajustez si nécessaire)
 EXPOSE 8000
