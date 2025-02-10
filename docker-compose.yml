@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   server:
-    build: ./server
+    build: ./Server
     ports:
       - "8000:8000"
     environment:
