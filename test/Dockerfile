@@ -9,7 +9,7 @@ WORKDIR /tests
 COPY . /tests
 
 # Installer les dépendances de test
-RUN uv venv
+RUN uv pip install --system
 
 # Attendre que le serveur soit prêt, puis exécuter les tests
-CMD ["sh", "-c", "sleep 5 && uv run pytest --maxfail=5 --disable-warnings"]
+CMD ["sh", "-c", "sleep 5 && uv pip sync pyproject.toml && pytest --maxfail=5 --disable-warnings"]
