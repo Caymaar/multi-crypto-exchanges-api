@@ -28,7 +28,7 @@ jobs:
       - name: Wait for server to be ready
         run: |
           echo "Waiting for server to be ready..."
-          until $(curl --output /dev/null --silent --fail http://localhost:8000/ping); do
+          until $(curl --output /dev/null --silent --fail http://127.0.0.1:8000/ping); do
             printf '.'
             sleep 2
           done
