@@ -15,4 +15,4 @@ RUN uv venv
 EXPOSE 8000
 
 # Lancer le serveur avec uv
-CMD ["uv", "run", "Server.py"]
+CMD ["uv", "run", "uvicorn main:app --host 0.0.0.0 --port 8000"]
