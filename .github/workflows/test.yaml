@@ -30,7 +30,7 @@ jobs:
             echo "Waiting for server to be ready..."
             timeout=60
             elapsed=0
-            url="http://localhost:8000/health"
+            url="http://server/health"
 
             until curl --output /dev/null --silent --fail "$url"; do
                 if [ $elapsed -ge $timeout ]; then

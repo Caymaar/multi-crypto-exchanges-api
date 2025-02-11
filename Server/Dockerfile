@@ -14,5 +14,6 @@ RUN uv pip install --system pyproject.toml
 # Exposer le port du serveur (ajustez si nécessaire)
 EXPOSE 8000
 
-# Lancer le serveur avec uv
-CMD ["uv", "pip", "sync", "pyproject.toml", "&&", "uvicorn", "Server:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY Server.py ./Server.py
+
+CMD ["uvicorn", "Server:app", "--host", "0.0.0.0", "--port", "80"]

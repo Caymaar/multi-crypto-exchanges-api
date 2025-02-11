@@ -4,6 +4,7 @@ FROM python:3.11-slim
 # Installer uv
 RUN pip install uv
 
+ENV IS_DOCKERIZED true
 # Copier les fichiers de tests
 WORKDIR /tests
 COPY . /tests

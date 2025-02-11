@@ -6,7 +6,7 @@ services:
     environment:
       - UV_WITH=requirements
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/ping"]
+      test: ["CMD", "curl", "-f", "http://server/ping"]
       interval: 10s
       timeout: 5s
       retries: 5

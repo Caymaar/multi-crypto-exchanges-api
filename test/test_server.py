@@ -1,7 +1,11 @@
 import pytest
 import requests
+from os import getenv
 
-BASE_URL = "http://localhost:8000"
+if getenv("IS_DOCKERIZED"):
+    BASE_URL = "http://server"
+else:
+    BASE_URL = "http://localhost:8000"
 
 @pytest.fixture(scope="session")
 def token_fixture():
