@@ -16,7 +16,7 @@ WORKDIR /app
 #  pandas
 # )
 COPY pyproject.toml .
-RUN pip install --upgrade pip && pip install -r pyproject.toml
+RUN pip install --upgrade pip && pip install pyproject.toml
 
 # Copier l'ensemble du code dans le container
 COPY . .
