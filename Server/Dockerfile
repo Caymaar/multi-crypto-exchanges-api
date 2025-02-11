@@ -1,19 +1,17 @@
-# Utilisation d'une image légère avec Python et uv
+# Utilisation d'une image légère avec Python
 FROM python:3.11-slim
 
-# Installer uv
-RUN pip install uv
+# Définir le répertoire de travail
+WORKDIR /app
 
 # Copier les fichiers du serveur
-WORKDIR /app
 COPY . /app
 
-# Installer les dépendances avec uv
-RUN uv pip install --system pyproject.toml
+# Installer les dépendances
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Exposer le port du serveur (ajustez si nécessaire)
+# Exposer le port du serveur
 EXPOSE 8000
 
-COPY Server.py ./Server.py
-
-CMD ["uvicorn", "Server:app", "--host", "0.0.0.0", "--port", "80"]
+# Lancer le serveur avec uvicorn
+CMD ["uvicorn", "Server:app", "--host", "0.0.0.0", "--port", "8000"]
