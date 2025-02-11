@@ -1,10 +1,12 @@
 services:
   server:
     build: ./Server
+    ports:
+      - "8000:8000"
 
   test:
     build: ./test
     command: uv run pytest
     ports:
-      - "8051:8051"
+      - "8000:8000"
 
