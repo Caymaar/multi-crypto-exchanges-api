@@ -15,4 +15,4 @@ RUN pip install uvicorn
 EXPOSE 8000
 
 # Start the FastAPI application using uvicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "Server:app", "--host", "0.0.0.0", "--port", "8000"]
