@@ -1,9 +1,9 @@
-from Utilities.Authentification import LoginRequest, RegisterRequest, TokenResponse, create_token, verify_token, verify_ws_token, invalidate_token
-from Utilities.DataBaseManager import dbm
-from Utilities.SubscriptionManager import AggregatedSubscriptionManager
-from Utilities.SymbolFormatter import AdvancedSymbolFormatter
-from Utilities.TWAPOrder import simulate_twap_order, TWAPOrderRequest
-from Exchanges import exchange_dict
+from Server.Utilities.Authentification import LoginRequest, RegisterRequest, TokenResponse, create_token, verify_token, verify_ws_token, invalidate_token
+from Server.Utilities.DataBaseManager import dbm
+from Server.Utilities.SubscriptionManager import AggregatedSubscriptionManager
+from Server.Utilities.SymbolFormatter import AdvancedSymbolFormatter
+from Server.Utilities.TWAPOrder import simulate_twap_order, TWAPOrderRequest
+from Server.Exchanges import exchange_dict
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query, Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from datetime import datetime
