@@ -1,6 +1,9 @@
 # Utilisation d'une image légère avec Python
 FROM python:3.11-slim
 
+# Installer uv
+RUN pip install uv
+
 # Définir le répertoire de travail
 WORKDIR /app
 
