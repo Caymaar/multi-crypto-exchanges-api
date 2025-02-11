@@ -15,10 +15,8 @@ WORKDIR /app
 #  requests
 #  pandas
 # )
-COPY pyproject.toml .
-RUN pip install --upgrade pip && pip install pyproject.toml
-
-RUN pip install uvicorn
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copier l'ensemble du code dans le container
 COPY . .
