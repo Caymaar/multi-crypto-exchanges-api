@@ -1,6 +1,6 @@
 import asyncio
 from fastapi import WebSocket
-from Exchanges import exchange_dict  # Nos instances d'exchanges (Binance, OKX, Kraken, etc.)
+from Server.Exchanges import exchange_dict  # Nos instances d'exchanges (Binance, OKX, Kraken, etc.)
 
 class AggregatedSubscription:
     def __init__(self, standard_symbol: str):
