@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Installer les dépendances
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --system pyproject.toml
 
 # Exposer le port du serveur
 EXPOSE 8000
