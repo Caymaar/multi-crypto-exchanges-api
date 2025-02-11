@@ -18,6 +18,8 @@ WORKDIR /app
 COPY pyproject.toml .
 RUN pip install --upgrade pip && pip install pyproject.toml
 
+RUN pip install uvicorn
+
 # Copier l'ensemble du code dans le container
 COPY . .
 
