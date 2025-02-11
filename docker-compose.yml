@@ -19,3 +19,5 @@ services:
     environment:
       - UV_WITH=requirements
     command: pytest --maxfail=5 --disable-warnings
+        ports:
+        - 8000:8000 
