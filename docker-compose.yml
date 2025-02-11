@@ -1,24 +1,10 @@
 services:
   server:
     build: ./Server
-    ports:
-      - "8000:8000"
-    environment:
-      - UV_WITH=requirements
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://server/ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   test:
     build: ./test
-    depends_on:
-      server:
-        ports:
-        - "8000:8000" 
-        condition: service_healthy
-    environment:
-      - UV_WITH=requirements
-    command: pytest --maxfail=5 --disable-warnings
+    command: uv run pytest
+    ports:
+      - "8051:8051"
 
