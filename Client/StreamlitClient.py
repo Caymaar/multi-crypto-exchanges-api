@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-from OrderBookApp import OrderBookApp
+from Utilities.OrderBookApp import OrderBookApp
 
 # URL de base de votre serveur (ajustez si nécessaire)
 SERVER_URL = "http://localhost:8000"

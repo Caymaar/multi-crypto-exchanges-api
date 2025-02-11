@@ -1,8 +1,8 @@
 from pydantic import BaseModel
-from Server.Utilities.DataBaseManager import dbm
+from Utilities.DataBaseManager import dbm
 import asyncio
-from Server.Exchanges import exchange_dict, binance_order_books
-from Server.Utilities.SymbolFormatter import SymbolFormatter
+from Exchanges import exchange_dict, binance_order_books
+from Utilities.SymbolFormatter import SymbolFormatter
 
 # --- Modèle Pydantic pour la soumission d'un TWAP order ---
 class TWAPOrderRequest(BaseModel):

@@ -1,4 +1,4 @@
-from Server.Exchanges.Abstract import Exchange
+from Exchanges.Abstract import Exchange
 import requests
 import asyncio
 import aiohttp

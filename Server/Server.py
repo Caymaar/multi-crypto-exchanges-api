@@ -1,9 +1,9 @@
-from Server.Utilities.Authentification import LoginRequest, RegisterRequest, TokenResponse, create_token, verify_token, verify_ws_token, invalidate_token
-from Server.Utilities.DataBaseManager import dbm
-from Server.Utilities.SubscriptionManager import AggregatedSubscriptionManager
-from Server.Utilities.SymbolFormatter import AdvancedSymbolFormatter
-from Server.Utilities.TWAPOrder import simulate_twap_order, TWAPOrderRequest
-from Server.Exchanges import exchange_dict
+from Utilities.Authentification import LoginRequest, RegisterRequest, TokenResponse, create_token, verify_token, verify_ws_token, invalidate_token
+from Utilities.DataBaseManager import dbm
+from Utilities.SubscriptionManager import AggregatedSubscriptionManager
+from Utilities.SymbolFormatter import AdvancedSymbolFormatter
+from Utilities.TWAPOrder import simulate_twap_order, TWAPOrderRequest
+from Exchanges import exchange_dict
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query, Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from datetime import datetime
@@ -25,6 +25,11 @@ subscription_manager = AggregatedSubscriptionManager()
 async def health_check():
     """Endpoint to check the health of the API"""
     return {"status": "healthy"}
+
+@app.get("/ping")
+async def ping():
+    """Simple ping endpoint"""
+    return {"message": "pong"}
 
 @app.get("/exchanges")
 async def get_exchanges():
@@ -165,11 +170,6 @@ async def get_users(username: str = Depends(verify_token)):
     
     users = dbm.get_all_users()
     return users
-
-@app.get("/ping")
-async def ping():
-    """Simple ping endpoint"""
-    return {"message": "pong"}
 
 ############################################################################################################
 # Websocket
