@@ -36,7 +36,7 @@ def create_token(username: str) -> str:
     token = jwt.encode(
         {
             "username": username,
-            "exp": expiration  # Convert datetime to timestamp
+            "exp": expiration 
         },
         SECRET_KEY,
         algorithm="HS256"
