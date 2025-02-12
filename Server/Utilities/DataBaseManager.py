@@ -21,6 +21,9 @@ class OrdersToken(Base):
     duration = Column(Float, nullable=False)
     interval = Column(Float, nullable=False)
     order_status = Column(String, nullable=False)
+    __table_args__ = (
+    PrimaryKeyConstraint('order_id', 'username'),
+    )
 
 class TWAPOrder(Base):
     __tablename__ = "twap_orders"
