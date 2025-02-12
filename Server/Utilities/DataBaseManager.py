@@ -15,7 +15,7 @@ class User(Base):
 
 class OrdersToken(Base):
     __tablename__ = "orders_tokens"
-    order_id = Column(String, primary_key=True)
+    order_id = Column(String, nullable=False)
     username = Column(String, ForeignKey("users.username"), nullable=False)
     symbol = Column(String, nullable=False)
     duration = Column(Float, nullable=False)
