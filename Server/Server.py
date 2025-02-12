@@ -1,3 +1,6 @@
+import sys
+import os
+#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Utilities.Authentification import LoginRequest, RegisterRequest, TokenResponse, create_token, verify_token, verify_ws_token, invalidate_token
 from Utilities.DataBaseManager import dbm
 from Utilities.SubscriptionManager import AggregatedSubscriptionManager
@@ -9,6 +12,8 @@ from fastapi.security import HTTPAuthorizationCredentials
 from datetime import datetime
 import pandas as pd
 import asyncio
+
+
 
 
 app = FastAPI(title="Exchange API", description="dev version")

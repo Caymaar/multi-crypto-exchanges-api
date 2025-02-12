@@ -25,8 +25,6 @@ tabs = st.tabs([
     "WebSocket"
 ])
 
-websocket_on = False
-
 # -----------------------------------------------------------------------------
 # Onglet 1 : Login / Register
 # -----------------------------------------------------------------------------
@@ -221,7 +219,7 @@ with tabs[6]:
         else:
             st.error("Not authenticated")
 
-    # col1, col2 = st.columns(2)  
+    websocket_on = False
 
     with col1:
         if st.button("Start"):
